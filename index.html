@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>GymTrack PWA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Manifest для PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Иконки -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer" />
+
+  <!-- Chart.js для графиков -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-title">
+      <span class="logo-icon"><i class="fa-solid fa-dumbbell"></i></span>
+      <span>GymTrack</span>
+    </div>
+    <button id="themeToggleBtn" class="icon-button" title="Переключить тему">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </header>
+
+  <nav class="app-nav">
+    <button class="nav-tab nav-tab--active" data-view="workoutsView">Тренировки</button>
+    <button class="nav-tab" data-view="statsView">Статистика</button>
+    <button class="nav-tab" data-view="calendarView">Календарь</button>
+    <button class="nav-tab" data-view="achievementsView">Достижения</button>
+    <button class="nav-tab" data-view="settingsView"><i class="fa-solid fa-gear"></i></button>
+  </nav>
+
+  <main class="app-main">
+    <!-- Вкладка тренировок -->
+    <section id="workoutsView" class="view view--active">
+      <div class="layout-two-columns">
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Мои тренировки</h2>
+            <div class="panel-header-actions">
+              <button id="newWorkoutFromTemplateBtn" class="secondary-button">
+                <i class="fa-solid fa-clone"></i> Из шаблона
+              </button>
+              <button id="newWorkoutBtn" class="primary-button">
+                <i class="fa-solid fa-plus"></i> Новая
+              </button>
+            </div>
+          </div>
+          <ul id="workoutList" class="workout-list"></ul>
+        </div>
+
+        <div class="panel" id="workoutDetailPanel">
+          <div class="panel-header">
+            <h2 id="workoutDetailTitle">Детали тренировки</h2>
+            <div class="panel-header-actions">
+              <button id="startWorkoutBtn" class="secondary-button" disabled>Стартовать</button>
+              <button id="finishWorkoutBtn" class="secondary-button" disabled>Завершить</button>
+              <button id="saveTemplateBtn" class="secondary-button" disabled>
+                <i class="fa-solid fa-bookmark"></i> В шаблон
+              </button>
+              <button id="deleteWorkoutBtn" class="icon-button danger" title="Удалить тренировку" disabled>
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="workoutMeta" class="workout-meta"></div>
+
+          <div class="exercise-header">
+            <h3>Упражнения</h3>
+            <button id="newExerciseBtn" class="primary-button" disabled>
+              <i class="fa-solid fa-plus"></i> Добавить
+            </button>
+          </div>
+
+          <ul id="exerciseList" class="exercise-list"></ul>
+
+          <div class="timer-section">
+            <h3>Таймеры отдыха</h3>
+            <p class="hint">
+              Нажимайте "Выполнил подход" — таймер между подходами запустится автоматически
+              (кроме последнего). После последнего подхода включится таймер между упражнениями.
+            </p>
+            <p>
+              Отдых между подходами: <span id="restDurationLabel">60</span> сек •
+              Между упражнениями: <span id="betweenDurationLabel">120</span> сек
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка статистики -->
+    <section id="statsView" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Общая статистика</h2>
+          <div class="panel-header-actions">
+            <div class="stats-filter">
+              <label>
+                Период:
+                <select id="statsRangeSelect">
+                  <option value="all">Все</option>
+                  <option value="week">Неделя</option>
+                  <option value="month">Месяц</option>
+                  <option value="custom">Произвольный</option>
+                </select>
+              </label>
+              <div id="statsCustomRange" class="stats-custom-range hidden">
+                <input type="date" id="statsFromDate" />
+                <span>–</span>
+                <input type="date" id="statsToDate" />
+                <button id="statsApplyRangeBtn" class="secondary-button">OK</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Тренировок всего</div>
+            <div class="stat-value" id="statTotalWorkouts">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Общее время (мин)</div>
+            <div class="stat-value" id="statTotalTime">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Средняя длительность (мин)</div>
+            <div class="stat-value" id="statAvgDuration">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Суммарный тоннаж (кг)</div>
+            <div class="stat-value" id="statTotalTonnage">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Прогресс по весу</h2>
+          <div class="panel-header-actions">
+            <select id="exerciseSelectForWeightChart">
+              <option value="">Выберите упражнение</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="weightChart" height="120"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Тоннаж по неделям</h2>
+        </div>
+        <canvas id="tonnageChart" height="120"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Время по упражнениям</h2>
+        </div>
+        <canvas id="timePerExerciseChart" height="120"></canvas>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Экспорт / импорт</h2>
+          <div class="panel-header-actions">
+            <button id="exportBtn" class="secondary-button">
+              <i class="fa-solid fa-file-export"></i> Экспорт JSON
+            </button>
+            <label class="file-input-label">
+              <input type="file" id="importInput" accept="application/json" />
+              <span><i class="fa-solid fa-file-import"></i> Импорт JSON</span>
+            </label>
+          </div>
+        </div>
+        <p class="hint">
+          Экспортируются тренировки, настройки, шаблоны и полученные достижения.
+        </p>
+      </div>
+    </section>
+
+    <!-- Вкладка календаря -->
+    <section id="calendarView" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Календарь тренировок</h2>
+          <div class="panel-header-actions">
+            <button id="calendarPrevBtn" class="icon-button">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span id="calendarMonthLabel" class="calendar-month-label"></span>
+            <button id="calendarNextBtn" class="icon-button">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Тренировки в выбранный день</h2>
+        </div>
+        <div id="calendarDayDetails" class="calendar-day-details">
+          Выберите день с тренировками.
+        </div>
+      </div>
+    </section>
+
+    <!-- Вкладка достижений -->
+    <section id="achievementsView" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Полученные бейджи</h2>
+        </div>
+        <div id="achievementsList" class="achievements-list"></div>
+      </div>
+    </section>
+
+    <!-- Вкладка настроек -->
+    <section id="settingsView" class="view">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Настройки</h2>
+        </div>
+        <form class="form settings-form" id="settingsForm">
+          <fieldset class="settings-group">
+            <legend>Таймер между подходами</legend>
+            <div class="preset-row">
+              <button type="button" class="preset-btn" data-rest-preset="30">30</button>
+              <button type="button" class="preset-btn" data-rest-preset="60">60</button>
+              <button type="button" class="preset-btn" data-rest-preset="90">90</button>
+              <button type="button" class="preset-btn" data-rest-preset="120">120</button>
+              <button type="button" class="preset-btn" data-rest-preset="180">180</button>
+            </div>
+            <label class="form-field">
+              <span>Ручной ввод (5–600 сек)</span>
+              <input type="number" id="restDurationInput" min="5" max="600" />
+            </label>
+          </fieldset>
+
+          <fieldset class="settings-group">
+            <legend>Таймер между упражнениями</legend>
+            <label class="form-field">
+              <span>Время отдыха (5–600 сек)</span>
+              <input type="number" id="betweenDurationInput" min="5" max="600" />
+            </label>
+          </fieldset>
+
+          <fieldset class="settings-group">
+            <legend>Тема</legend>
+            <label>
+              <input type="radio" name="theme" value="dark" /> Тёмная
+            </label>
+            <label>
+              <input type="radio" name="theme" value="light" /> Светлая
+            </label>
+          </fieldset>
+
+          <div class="modal-actions">
+            <button type="submit" class="primary-button">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Модальное окно тренировки -->
+  <div id="workoutModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2 id="workoutModalTitle">Новая тренировка</h2>
+      <form id="workoutForm" class="form">
+        <label class="form-field">
+          <span>Название</span>
+          <input type="text" id="workoutNameInput" required />
+        </label>
+        <label class="form-field">
+          <span>Дата</span>
+          <input type="date" id="workoutDateInput" required />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="secondary-button" id="closeWorkoutModalBtn">Отмена</button>
+          <button type="submit" class="primary-button">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно упражнения -->
+  <div id="exerciseModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2 id="exerciseModalTitle">Новое упражнение</h2>
+      <form id="exerciseForm" class="form">
+        <label class="form-field">
+          <span>Название</span>
+          <input type="text" id="exerciseNameInput" required />
+        </label>
+        <label class="form-field">
+          <span>Подходы</span>
+          <input type="number" id="exerciseSetsInput" min="1" max="50" value="3" required />
+        </label>
+        <label class="form-field">
+          <span>Повторения</span>
+          <input type="number" id="exerciseRepsInput" min="1" max="100" value="10" required />
+        </label>
+        <label class="form-field">
+          <span>Вес (кг)</span>
+          <input type="number" id="exerciseWeightInput" min="0" max="500" step="0.5" value="0" required />
+        </label>
+        <label class="form-field">
+          <span>Ссылка на изображение (опционально)</span>
+          <input type="url" id="exerciseImageInput" placeholder="https://..." />
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="secondary-button" id="closeExerciseModalBtn">Отмена</button>
+          <button type="submit" class="primary-button">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Модальное окно выбора шаблона -->
+  <div id="templateModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2>Создать тренировку из шаблона</h2>
+      <div id="templateList" class="template-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="closeTemplateModalBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно таймера -->
+  <div id="timerModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-content--center">
+      <h2 id="timerTitle">Отдых</h2>
+      <div id="timerDisplay" class="timer-display">00:00</div>
+      <button id="timerStopBtn" class="secondary-button">Пропустить отдых</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно подтверждения -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2 id="confirmTitle">Подтверждение</h2>
+      <p id="confirmMessage">Вы уверены?</p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="confirmCancelBtn">Отмена</button>
+        <button type="button" class="primary-button danger" id="confirmOkBtn">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно нового бейджа -->
+  <div id="achievementModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-content--center achievement-modal-content">
+      <h2>Новый бейдж!</h2>
+      <div id="achievementModalBody"></div>
+      <button id="achievementModalCloseBtn" class="primary-button">Круто!</button>
+    </div>
+  </div>
+
+  <script src="js/app.js" type="module"></script>
+  <script>
+    // Регистрация service worker для PWA
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
